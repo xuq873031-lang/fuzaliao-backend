@@ -362,6 +362,25 @@ def add_friend(friend_id: int, db: Session = Depends(get_db), current_user: User
     return {"ok": True}
 
 
+@app.delete("/api/friends/{friend_id}")
+def remove_friend(friend_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if friend_id == current_user.id:
+        raise HTTPException(status_code=400, detail="Cannot remove yourself")
+
+    friend = db.get(User, friend_id)
+    if not friend:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    db.execute(
+        delete(friends).where(friends.c.user_id == current_user.id, friends.c.friend_id == friend_id)
+    )
+    db.execute(
+        delete(friends).where(friends.c.user_id == friend_id, friends.c.friend_id == current_user.id)
+    )
+    db.commit()
+    return {"ok": True}
+
+
 @app.get("/api/friends", response_model=list[SearchUserOut])
 def get_friends(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     ids = db.execute(select(friends.c.friend_id).where(friends.c.user_id == current_user.id)).all()
