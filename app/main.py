@@ -36,7 +36,7 @@ manager = ConnectionManager()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins={"*"},
+    allow_origins=["https://xuq873031-lang.github.io"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
