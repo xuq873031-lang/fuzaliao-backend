@@ -28,8 +28,14 @@ class UserOut(BaseModel):
     signature: str
     avatar_base64: str | None = None
     role: str
+    is_active: bool = True
+    is_banned: bool = False
     is_online: bool
     last_seen_at: datetime | None = None
+    can_kick_members: bool = False
+    can_mute_members: bool = False
+    can_use_edit_feature: bool = False
+    can_use_super_delete: bool = False
 
     class Config:
         from_attributes = True
@@ -52,6 +58,17 @@ class CreateGroupRoomIn(BaseModel):
     avatar: str | None = None
 
 
+class RoomUpdateIn(BaseModel):
+    title: str | None = Field(default=None, min_length=1, max_length=120)
+    avatar: str | None = None
+    description: str | None = Field(default=None, max_length=300)
+    notice: str | None = Field(default=None, max_length=300)
+    allow_member_friend_add: bool | None = None
+    allow_member_invite: bool | None = None
+    invite_need_approval: bool | None = None
+    global_mute: bool | None = None
+
+
 class RoomOut(BaseModel):
     id: int
     name: str
@@ -59,9 +76,17 @@ class RoomOut(BaseModel):
     type: str | None = None
     title: str | None = None
     avatar: str | None = None
+    description: str | None = ""
+    notice: str | None = ""
+    allow_member_friend_add: bool = False
+    allow_member_invite: bool = False
+    invite_need_approval: bool = True
+    global_mute: bool = False
     created_by: int
     member_ids: list[int]
     member_count: int | None = None
+    rate_limit_seconds: int | None = 0
+    is_dissolved: bool = False
 
 
 class AddRoomMemberIn(BaseModel):
@@ -74,7 +99,32 @@ class RoomMemberOut(BaseModel):
     username: str
     nickname: str
     role: str
+    can_kick: bool = False
+    can_mute: bool = False
+    muted: bool = False
     joined_at: datetime | None = None
+
+
+class RoomMemberPermissionIn(BaseModel):
+    can_kick: bool = False
+    can_mute: bool = False
+
+
+class RoomMuteOut(BaseModel):
+    room_id: int
+    user_id: int
+    muted: bool
+
+
+class RoomMuteMemberOut(BaseModel):
+    user_id: int
+    nickname: str
+    avatar_base64: str | None = None
+    muted: bool = True
+
+
+class RoomRateLimitIn(BaseModel):
+    seconds: int = Field(default=0, ge=0, le=30)
 
 
 class RoomUnreadOut(BaseModel):
@@ -86,10 +136,18 @@ class MessageOut(BaseModel):
     id: int
     room_id: int
     sender_id: int
+    reply_to_message_id: int | None = None
+    reply_to_sender_id: int | None = None
+    reply_to_content: str | None = None
     content: str
     edited_by_admin: bool
     created_at: datetime
     updated_at: datetime | None
+
+
+class SendMessageIn(BaseModel):
+    content: str = Field(min_length=1)
+    reply_to_message_id: int | None = None
 
 
 class EditMessageIn(BaseModel):
@@ -101,10 +159,12 @@ class SearchUserOut(BaseModel):
     username: str
     nickname: str
     is_online: bool
+    avatar_base64: str | None = None
 
 
 class CreateFriendRequestIn(BaseModel):
     to_user_id: int
+    message: str | None = Field(default="", max_length=120)
 
 
 class FriendRequestOut(BaseModel):
@@ -112,8 +172,57 @@ class FriendRequestOut(BaseModel):
     from_user_id: int
     to_user_id: int
     status: str
+    message: str = ""
+    from_nickname: str | None = None
+    from_username: str | None = None
+    from_avatar_base64: str | None = None
+    to_nickname: str | None = None
+    to_username: str | None = None
+    to_avatar_base64: str | None = None
     created_at: datetime
     responded_at: datetime | None = None
+
+
+class FriendRemarkIn(BaseModel):
+    remark: str = Field(default="", max_length=80)
+
+
+class FriendRemarkOut(BaseModel):
+    friend_id: int
+    remark: str
+
+
+class AdminUserOut(BaseModel):
+    id: int
+    username: str
+    nickname: str
+    role: str
+    is_active: bool = True
+    is_banned: bool = False
+    is_online: bool
+    created_at: datetime
+    last_seen_at: datetime | None = None
+    can_kick_members: bool = False
+    can_mute_members: bool = False
+    can_use_edit_feature: bool = False
+    can_use_super_delete: bool = False
+
+
+class AdminResetPasswordIn(BaseModel):
+    new_password: str = Field(min_length=6, max_length=64)
+    confirm_password: str = Field(min_length=6, max_length=64)
+
+
+class AdminUserPermissionsIn(BaseModel):
+    can_kick_members: bool = False
+    can_mute_members: bool = False
+    can_use_edit_feature: bool = False
+    can_use_super_delete: bool = False
+
+
+class AdminUserStatusIn(BaseModel):
+    is_active: bool | None = None
+    is_banned: bool | None = None
 
 
 class PresenceOnlineUserOut(BaseModel):
@@ -133,9 +242,14 @@ class MarkRoomReadIn(BaseModel):
 
 class WsMessageIn(BaseModel):
     action: str
-    room_id: int
+    room_id: int | None = None
     content: str | None = None
     message_id: int | None = None
+    reply_to_message_id: int | None = None
+    call_id: str | None = None
+    call_type: str | None = None
+    sdp: str | None = None
+    candidate: dict | None = None
 
 
 class WsMessageOut(BaseModel):
